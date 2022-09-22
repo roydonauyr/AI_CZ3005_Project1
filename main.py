@@ -112,5 +112,8 @@ def calH(first_coord, second_coord):
 
     return average
 
+    # Only uses diagonal distance
+    # return math.sqrt(x_dist + y_dist)
+
 if __name__ == "__main__":
     main()
