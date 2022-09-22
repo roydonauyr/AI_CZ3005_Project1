@@ -1,7 +1,10 @@
+from cmath import sqrt
 import json
 import math
 import heapq
-
+#Setting constants
+START = "1"
+END = "50"
 MAX_ENERGY = 287932
 
 def main():
@@ -13,126 +16,101 @@ def main():
 
     graph = json.load(G)
     dist = json.load(D)
-    Coord = json.load(C)
+    coord = json.load(C)
     cost = json.load(Cost)
     
-    # Calculating distance of dict
-    # heuristicDict = {}
-    # targetCoord = Coord['50']
-    # for key, item in Coord.items():
-    #     heuristicDict[key] = calcH(targetCoord, item)
-
-    # # Greedy algorithm
-    # print(greedySearch(graph, heuristicDict, "1", "50"))
+    
 
     # UCS
     print("----- UCS -----")
-    ucs(graph, dist, cost, "1", "50")
-     
-def calcH(goal, cur):
-    new_x = (goal[0] - cur[0]) 
-    new_y = (goal[1] - cur[1])
-    
-    heuristicDistance = math.sqrt((new_x **2 + new_y ** 2))
-    return heuristicDistance
+    print(specialAStar(graph, dist, cost, coord, START, END, False,False))
 
-def greedySearch(graph, heuristicDict, start, end):
-    #Initialise
-    shortestPathList = []
-    pq = []
+    #UCS with budget
+    print("----- UCS with energy budget-----")
+    print(specialAStar(graph, dist, cost, coord, START, END, True,False))
 
-    # Starting the greedy algo
-    for element in graph[start]:
-        heapq.heappush(pq, (heuristicDict[element], element))
-    
-    for i in range(5):
-        visited = heapq.heappop(pq)
-        shortestPathList.append(visited)
+    #A* with budget
+    print("----- A* with energy budget-----")
+    print(specialAStar(graph, dist, cost, coord, START, END, True,True))
 
-        #Checking if its terminal
-        if(visited[1] == end):
-            return shortestPathList
-        
-        for element in graph[visited[1]]:
-            heapq.heappush(pq, (heuristicDict[element], element))  
-
-    return -1
-
-# A* Search
-def a_star(graph, dist, cost, start, end, with_energy=False, heuristic=lambda u: 0):
-    # Min priority queue -> (priority, cur_node)
-    pq = []
+def specialAStar(graph, dist, cost, coord, start, end, budget,h):
     path = []
-    prev = {}
+    pq = []
     dist_from_source = {}
     energy_from_source = {}
+    parent = {}
 
     dist_from_source[start] = 0
     energy_from_source[start] = 0
-    prev[start] = "-1"
-    heapq.heappush(pq, (0, start)) 
-
-    # Number of nodes expanded
-    num_nodes = 0
-
-    while len(pq) != 0:
-        distance, cur_node = heapq.heappop(pq)
+    parent[start] = "-1"    
+    heapq.heappush(pq, (0,start))
+    num_nodes =0
+    while (len(pq) != 0):
+        distance, currNode = heapq.heappop(pq)
         num_nodes += 1
-
-        # Reaches goal state
-        if cur_node == end:
+        if(currNode == end):
             break
 
-        # Push neighbours that are not done yet
-        for adjacent in graph[cur_node]:
-            temp = cur_node + "," + adjacent
-            new_distance_taken = dist_from_source[cur_node] + dist[temp]
-            new_energy_taken = energy_from_source[cur_node] + cost[temp]
+        for neighbour in graph[currNode]:
+            temp = currNode + "," + neighbour
+            tempDist = dist_from_source[currNode] +  dist[temp]
+            tempEnergy = energy_from_source[currNode] + cost[temp]
 
-            # f = g + h
-            new_priority = new_distance_taken + heuristic(adjacent)
-
-            # skip if energy is more than budget (if applicable)
-            if with_energy and new_energy_taken > MAX_ENERGY:
+            if budget and tempEnergy > MAX_ENERGY:
                 continue
             
-            # update if not in visited and new distance is shorter
-            if adjacent not in dist_from_source or new_distance_taken < dist_from_source[adjacent]:
-                dist_from_source[adjacent] = new_distance_taken
-                energy_from_source[adjacent] = new_energy_taken
-                prev[adjacent] = cur_node
-                heapq.heappush(pq, (new_priority, adjacent))
+            #Heuristic distance
+            if(h):
+                hdist = tempDist + calH(coord[neighbour], coord[end])
+            
+            if(neighbour not in dist_from_source):
+                dist_from_source[neighbour] = tempDist
+                energy_from_source[neighbour] = tempEnergy
+                parent[neighbour] = currNode
+                if(h):
+                    heapq.heappush(pq, (hdist,neighbour))
+                else:
+                    heapq.heappush(pq, (tempDist,neighbour))
+            elif(neighbour in dist_from_source):
+                if(dist_from_source[neighbour] > tempDist):
+                    dist_from_source[neighbour] = tempDist
+                    energy_from_source[neighbour] = tempEnergy
+                    parent[neighbour] = currNode
+                    if(h):
+                        heapq.heappush(pq, (hdist,neighbour))
+                    else:
+                        heapq.heappush(pq, (tempDist,neighbour))
+                    
+
+ 
 
     # backtrack the final path
     cur_node = end
 
     while cur_node != "-1":
         path.append(cur_node)
-        cur_node = prev[cur_node]
-    
-    # reverse path, as it was in backwards direction
+        cur_node = parent[cur_node]
     path.reverse()
 
     # print path
     print("Shortest Path:", " -> ".join(path))
-
     # print distance
     print("Shortest Distance:", dist_from_source[end])
-
-    # print energy
-    if with_energy:
-        print("Total Energy Cost:", energy_from_source[end])
-
     # print number of nodes expanded
     print(f"Nodes expanded: {num_nodes}\n")
+    # print energy cost
+    if(budget):
+        print("Total energy cost:", energy_from_source[end])
 
+def calH(first_coord, second_coord):
+    x_dist = (second_coord[0] - first_coord[0]) **2
+    y_dist = (second_coord[1] - first_coord[1]) **2
 
-# Uniform Cost Search
-def ucs(graph, dist, cost, start, end):
-    # UCS = A* Search with no heuristic function
-    a_star(graph, dist, cost, start, end, with_energy=False, heuristic=lambda u: 0)
-    
+    manhattan = abs(second_coord[0] - first_coord[0]) + abs(second_coord[1] - first_coord[1])
+
+    average = (manhattan + math.sqrt(x_dist + y_dist))/2
+
+    return average
+
 if __name__ == "__main__":
     main()
-
-
