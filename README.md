@@ -2,5 +2,5 @@
 Search Algorithms
 
 To RUN:
-cd AI_CZ3005_Project1-main\AI_CZ3005_Project1-main
+cd AI_CZ3005_Project1-main
 python main.py
