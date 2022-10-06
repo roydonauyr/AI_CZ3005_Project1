@@ -106,14 +106,14 @@ def calH(first_coord, second_coord):
     x_dist = (second_coord[0] - first_coord[0]) **2
     y_dist = (second_coord[1] - first_coord[1]) **2
 
-    # manhattan = abs(second_coord[0] - first_coord[0]) + abs(second_coord[1] - first_coord[1])
+    manhattan = abs(second_coord[0] - first_coord[0]) + abs(second_coord[1] - first_coord[1])
 
-    # average = (manhattan + math.sqrt(x_dist + y_dist))/2
+    average = (manhattan + math.sqrt(x_dist + y_dist))/2
 
-    # return average
+    return average
 
     # Only uses diagonal distance
-    return math.sqrt(x_dist + y_dist)
+   # return math.sqrt(x_dist + y_dist)
 
 if __name__ == "__main__":
     main()
